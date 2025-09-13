@@ -1,0 +1,31 @@
+# Node.js.
+.pnpm-debug.log*
+.env
+
+# Client (React/Next.js) specific.
+client/build/
+client/.env
+client/node_modules/
+.next
+out/
+
+# Server (Node.js/Express.js) specific.
+server/node_modules/
+server/.env
+
+# Logs.
+*.log
+logs/
+*.log.*
+
+# OS generated files.
+.DS_Store
+Thumbs.db
+
+# IDE specific files.
+.vscode/
+.idea/
+
+# Temporary files.
+tmp/
+*.tmp
