@@ -2,14 +2,14 @@
 .pnpm-debug.log*
 .env
 
-# Client (React/Next.js) specific.
+# Client (React/Next.js).
 client/build/
 client/.env
 client/node_modules/
 .next
 out/
 
-# Server (Node.js/Express.js) specific.
+# Server (Node.js/Express.js).
 server/node_modules/
 server/.env
 
@@ -29,3 +29,6 @@ Thumbs.db
 # Temporary files.
 tmp/
 *.tmp
+
+# Firebase.
+server/serviceAccountKey.json

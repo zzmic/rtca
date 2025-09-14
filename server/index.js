@@ -5,8 +5,11 @@ import { dirname, join } from "node:path";
 import cors from "cors";
 import { Server } from "socket.io";
 import dotenv from "dotenv";
+import validator from "validator";
 
 dotenv.config();
+
+import { db, admin } from "./utils/FirebaseInit.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -26,6 +29,8 @@ app.use(
 app.use(express.static(__dirname));
 
 app.get("/", (req, res) => {
+  // index.html serves as a prototyping interface that offers identical functionality to the React frontend
+  // but with different stylings and UIs.
   res.sendFile(join(__dirname, "index.html"));
 });
 
@@ -42,8 +47,39 @@ io.on("connection", (socket) => {
 
   socket.emit("system", `Welcome! You are ${socket.id}`);
 
-  socket.on("chat message", (msg) => {
-    io.emit("chat message", `${socket.id}: ${msg}`);
+  socket.on("chat message", async (msg) => {
+    if (!msg || typeof msg !== "string" || msg.trim().length === 0) {
+      socket.emit("system", "Invalid message received");
+      return;
+    }
+
+    var sanitizedMsg = msg.trim();
+    if (!validator.isLength(sanitizedMsg, { min: 1, max: 1000 })) {
+      socket.emit("error", "Message must be 1-1000 characters");
+      return;
+    }
+    sanitizedMsg = validator
+      .escape(sanitizedMsg)
+      // eslint-disable-next-line no-control-regex
+      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, "")
+      .trim();
+
+    const messageData = {
+      userId: socket.id,
+      message: sanitizedMsg,
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    };
+
+    // io.emit("chat message", `${socket.id}: ${msg}`);
+    io.emit("chat message", `${socket.id}: ${sanitizedMsg}`);
+
+    try {
+      await db.collection("messages").add(messageData);
+      console.log("Message saved to Firestore:", messageData);
+    } catch (error) {
+      console.error("Error saving message to Firestore:", error);
+      socket.emit("error", "Failed to process message");
+    }
   });
 
   socket.on("disconnect", () => {
