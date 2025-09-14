@@ -3,3 +3,4 @@ A real-time chat application primarily built with React, Next.js, Node.js, Expre
 
 ## References
 - [Socket.IO Docs](https://socket.io)
+- [Tailwind CSS Docs](https://tailwindcss.com)
