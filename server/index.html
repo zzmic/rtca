@@ -29,6 +29,46 @@
       const input = document.getElementById("input");
       const messages = document.getElementById("messages");
 
+      const loadingDiv = document.createElement("div");
+      loadingDiv.textContent = "Loading recent messages...";
+      loadingDiv.style.textAlign = "center";
+      loadingDiv.style.padding = "1rem";
+      loadingDiv.style.color = "#666";
+      messages.appendChild(loadingDiv);
+
+      async function fetchRecentMessages() {
+        try {
+          const response = await fetch("/api/messages?limit=25");
+          if (response.ok) {
+            const data = await response.json();
+
+            if (loadingDiv.parentNode) {
+              loadingDiv.parentNode.removeChild(loadingDiv);
+            }
+
+            data.messages.forEach((msg) => {
+              const li = document.createElement("li");
+              const timestamp = msg.timestamp
+                ? new Date(msg.timestamp).toLocaleTimeString()
+                : new Date().toLocaleTimeString();
+              li.textContent = `${msg.userId}: ${msg.message}`;
+              li.title = timestamp;
+              messages.appendChild(li);
+            });
+
+            window.scrollTo(0, document.body.scrollHeight);
+          } else {
+            console.error("Error fetching messages:", response.statusText);
+            loadingDiv.textContent = "Error loading messages";
+          }
+        } catch (error) {
+          console.error("Error fetching messages:", error);
+          loadingDiv.textContent = "Error loading messages";
+        }
+      }
+
+      fetchRecentMessages();
+
       form.addEventListener("submit", (e) => {
         e.preventDefault();
         if (input.value.trim()) {

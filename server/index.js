@@ -28,10 +28,38 @@ app.use(
 
 app.use(express.static(__dirname));
 
-app.get("/", (req, res) => {
+app.get("/", async (req, res) => {
   // index.html serves as a prototyping interface that offers identical functionality to the React frontend
   // but with different stylings and UIs.
   res.sendFile(join(__dirname, "index.html"));
+});
+
+app.get("/api/messages", async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 25;
+
+    const messagesSnapshort = await db
+      .collection("messages")
+      .orderBy("timestamp", "desc")
+      .limit(limit)
+      .get();
+
+    const messages = [];
+    messagesSnapshort.forEach((doc) => {
+      const data = doc.data();
+      messages.push({
+        id: doc.id,
+        userId: data.userId,
+        message: data.message,
+        timestamp: data.timestamp?.toDate?.() || data.timestamp,
+      });
+    });
+    messages.reverse();
+    res.json({ messages });
+  } catch (error) {
+    console.error("Error fetching messages:", error);
+    res.status(500).json({ error: "Failed to fetch messages" });
+  }
 });
 
 const server = createServer(app);
