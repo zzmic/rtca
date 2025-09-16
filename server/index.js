@@ -29,8 +29,6 @@ app.use(
 app.use(express.static(__dirname));
 
 app.get("/", async (req, res) => {
-  // index.html serves as a prototyping interface that offers identical functionality to the React frontend
-  // but with different stylings and UIs.
   res.sendFile(join(__dirname, "index.html"));
 });
 
@@ -70,10 +68,30 @@ const io = new Server(server, {
   },
 });
 
+const connectedUsers = new Map();
+
 io.on("connection", (socket) => {
   console.log("A user connected:", socket.id);
 
+  connectedUsers.set(socket.id, {
+    id: socket.id,
+    username: `${socket.id}`,
+    connectedAt: new Date(),
+    lastActive: new Date(),
+  });
+
   socket.emit("system", `Welcome! You are ${socket.id}`);
+  socket.emit("user joined", {
+    users: connectedUsers.get(socket.id),
+    onlineUsers: Array.from(connectedUsers.values()),
+  });
+
+  socket.broadcast.emit("user joined", {
+    user: connectedUsers.get(socket.id),
+    onlineUsers: Array.from(connectedUsers.values()),
+  });
+
+  socket.broadcast.emit("system", `User ${socket.id} has joined the chat`);
 
   socket.on("chat message", async (msg) => {
     if (!msg || typeof msg !== "string" || msg.trim().length === 0) {
@@ -98,7 +116,10 @@ io.on("connection", (socket) => {
       timestamp: admin.firestore.FieldValue.serverTimestamp(),
     };
 
-    // io.emit("chat message", `${socket.id}: ${msg}`);
+    if (connectedUsers.has(socket.id)) {
+      connectedUsers.get(socket.id).lastActive = new Date();
+    }
+
     io.emit("chat message", `${socket.id}: ${sanitizedMsg}`);
 
     try {
@@ -111,6 +132,16 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", () => {
+    const user = connectedUsers.get(socket.id);
+    if (user) {
+      connectedUsers.delete(socket.id);
+
+      socket.broadcast.emit("user left", {
+        userId: socket.id,
+        onlineUsers: Array.from(connectedUsers.values()),
+      });
+    }
+
     io.emit("system", `User ${socket.id} has left the chat`);
     console.log(`User ${socket.id} disconnected`);
   });

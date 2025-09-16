@@ -8,6 +8,7 @@ export default function ChatBox() {
   const [messages, setMessages] = useState([]);
   const [socket, setSocket] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [onlineUsers, setOnlineUsers] = useState([]);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -63,8 +64,21 @@ export default function ChatBox() {
           id: Date.now(),
           text: msg,
           timestamp: new Date().toLocaleTimeString(),
+          type: "system",
         },
       ]);
+    });
+
+    newSocket.on("user joined", (data) => {
+      if (data.onlineUsers) {
+        setOnlineUsers(data.onlineUsers);
+      }
+    });
+
+    newSocket.on("user left", (data) => {
+      if (data.onlineUsers) {
+        setOnlineUsers(data.onlineUsers);
+      }
     });
 
     return () => newSocket.close();
@@ -97,6 +111,9 @@ export default function ChatBox() {
     <div className="h-screen flex flex-col">
       <div className="bg-blue-500 text-white p-4">
         <h1 className="text-xl font-bold">Chat</h1>
+        <div className="text-sm mt-1">
+          <span className="mr-4">Online: {onlineUsers.length}</span>
+        </div>
       </div>
 
       <MessageList messages={messages} />
